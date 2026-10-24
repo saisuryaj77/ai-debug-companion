@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1a73e8">
+<title>AI Debugging Companion</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--fg:#e2e8f0;--mut:#94a3b8;--acc:#3b82f6;--line:#334155}
+*{box-sizing:border-box}body{margin:0;font:16px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--fg)}
+header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+h1{font-size:18px;margin:0}main{padding:16px;max-width:720px;margin:auto}
+textarea,input,select{width:100%;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;margin:6px 0 10px}
+textarea{min-height:150px;font-family:ui-monospace,monospace;font-size:14px}
+button{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:11px 16px;font:inherit;cursor:pointer}
+button.g{background:var(--card);border:1px solid var(--line)}
+.row{display:flex;gap:8px;flex-wrap:wrap}.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin:12px 0}
+.hint{color:#fcd34d}.mut{color:var(--mut);font-size:14px}pre{background:#0b1220;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap}
+#out{white-space:pre-wrap;word-break:break-word}[hidden]{display:none}
+</style>
+</head>
+<body>
+<header><h1>AI Debugging Companion</h1><button class="g" id="gear">Settings</button></header>
+<main>
+<div class="card" id="set" hidden>
+<label>Anthropic API key<input id="key" type="password" placeholder="sk-ant-..."></label>
+<label>Model<input id="model" placeholder="claude-sonnet-5-5"></label>
+<button id="save">Save</button>
+<p class="mut">Saved only on this device. Quick hints work without a key.</p>
+</div>
+
+<label>What do you want to debug?
+<select id="kind">
+<option value="error">Console / error message</option>
+<option value="network">Failed network request (status + URL)</option>
+<option value="code">Code that is not working</option>
+<option value="css">CSS / layout problem</option>
+</select></label>
+<textarea id="inp" placeholder="Paste the error, stack trace, request, or code here..."></textarea>
+<div class="row"><button id="go">Explain with AI</button><button class="g" id="clr">Clear</button></div>
+
+<div class="card" id="hbox" hidden><b>Quick hint</b><div class="hint" id="hint"></div></div>
+<div class="card"><b>Answer</b><div id="out" class="mut">Your explanation will appear here.</div></div>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function hint(m){
+ const r=[[/Cannot read propert(y|ies) of (undefined|null)/i,'Something is undefined/null. Use optional chaining (obj?.prop) or check data has loaded.'],
+ [/is not a function/i,'You are calling something that is not a function. Check the import and spelling.'],
+ [/is not defined/i,'Variable used before it exists. Check spelling, scope and script order.'],
+ [/CORS|Access-Control-Allow-Origin/i,'Server must send Access-Control-Allow-Origin for your origin, or use a backend proxy.'],
+ [/Mixed Content/i,'An https page loads an http resource. Change the URL to https.'],
+ [/Unexpected token '?<'?/i,'You got HTML (often a 404/500 page) where JSON/JS was expected. Check the URL.'],
+ [/Failed to fetch|NetworkError|net::ERR/i,'Request did not complete: offline, CORS, DNS, or server down.'],
+ [/Hydration|did not match/i,'Server HTML differs from client render. Avoid Date/random/window in first render.'],
+ [/\b404\b/,'404: wrong URL or missing file.'],[/\b40[13]\b/,'401/403: missing or invalid credentials or permissions.'],[/\b5\d\d\b/,'5xx: server crashed. Check server logs.']];
+ for(const [re,t] of r) if(re.test(m)) return t; return '';
+}
+const SYS='You are an expert web debugging assistant. Be concise and practical. Format: 1) Cause (1-2 sentences) 2) Fix (short code snippet in a fenced block if useful) 3) How to verify. Use simple words.';
+function md(t){return String(t).split(/```[a-z]*\n?/i).map((p,i)=>i%2?'<pre>'+esc(p)+'</pre>':esc(p).replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')).join('')}
+$('#gear').onclick=()=>$('#set').hidden=!$('#set').hidden;
+try{$('#key').value=localStorage.getItem('k')||'';$('#model').value=localStorage.getItem('m')||'';if(!localStorage.getItem('k'))$('#set').hidden=false}catch(e){}
+$('#save').onclick=()=>{try{localStorage.setItem('k',$('#key').value.trim());localStorage.setItem('m',$('#model').value.trim())}catch(e){}$('#set').hidden=true};
+$('#clr').onclick=()=>{$('#inp').value='';$('#out').textContent='Your explanation will appear here.';$('#hbox').hidden=true};
+$('#go').onclick=async()=>{
+ const t=$('#inp').value.trim(); if(!t) return;
+ const h=hint(t); $('#hbox').hidden=!h; $('#hint').textContent=h;
+ let k='',m='';try{k=localStorage.getItem('k')||'';m=localStorage.getItem('m')||''}catch(e){}
+ const o=$('#out'); if(!k){o.textContent='Add your API key in Settings for the full AI explanation.';return}
+ o.textContent='Thinking...';
+ try{
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+   body:JSON.stringify({model:m||'claude-sonnet-5-5',max_tokens:1200,system:SYS,messages:[{role:'user',content:'Type: '+$('#kind').value+'\n\n'+t}]})});
+  const d=await r.json(); if(!r.ok) throw new Error(d.error&&d.error.message||('HTTP '+r.status));
+  o.innerHTML=md(d.content.map(c=>c.text||'').join(''));
+ }catch(e){o.textContent='Error: '+e.message}
+};
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
