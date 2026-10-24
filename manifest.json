@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "AI Debugging Companion",
+  "version": "1.0.0",
+  "description": "A DevTools panel that captures console errors, failed requests and page issues, then explains and fixes them with AI.",
+  "devtools_page": "devtools.html",
+  "permissions": ["storage"],
+  "host_permissions": ["https://api.anthropic.com/*"],
+  "minimum_chrome_version": "114"
+}

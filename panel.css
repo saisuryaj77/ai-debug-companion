@@ -1,0 +1,31 @@
+:root { --bg:#fff; --fg:#202124; --muted:#6b7280; --line:#e5e7eb; --card:#f8fafc; --accent:#1a73e8; --err:#d93025; --warn:#b06000; --net:#7b1fa2; }
+body.dark { --bg:#242424; --fg:#e8eaed; --muted:#9aa0a6; --line:#3c4043; --card:#2d2e30; --accent:#8ab4f8; --err:#f28b82; --warn:#fdd663; --net:#d7aefb; }
+* { box-sizing:border-box; }
+body { margin:0; font:12px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--fg); display:flex; flex-direction:column; height:100vh; }
+header { display:flex; align-items:center; gap:8px; padding:6px 10px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+.actions { margin-left:auto; display:flex; gap:6px; }
+button { background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:4px; padding:3px 8px; cursor:pointer; font:inherit; }
+button:hover { border-color:var(--accent); }
+button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+main { flex:1; overflow:auto; padding:6px 10px; }
+h3 { margin:10px 0 4px; font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+ul { list-style:none; margin:0; padding:0; }
+li.issue { border:1px solid var(--line); border-radius:6px; background:var(--card); padding:6px 8px; margin-bottom:6px; }
+.badge { display:inline-block; font-size:10px; padding:0 6px; border-radius:8px; border:1px solid currentColor; margin-right:6px; }
+.badge.exception, .badge.promise, .badge.console\.error { color:var(--err); }
+.badge.network { color:var(--net); }
+.badge.perf, .badge.a11y { color:var(--warn); }
+.msg { word-break:break-word; font-family:ui-monospace, monospace; }
+.hint { margin:4px 0; color:var(--muted); }
+.row { display:flex; gap:6px; margin-top:4px; }
+.muted { color:var(--muted); }
+#out { white-space:pre-wrap; word-break:break-word; }
+#out pre { background:var(--card); border:1px solid var(--line); border-radius:4px; padding:6px; overflow:auto; }
+#out code { font-family:ui-monospace, monospace; }
+section#settings { padding:8px 10px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:6px; }
+section#settings label { display:flex; gap:8px; align-items:center; }
+section#settings input { flex:1; }
+input { background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:4px; padding:4px 6px; font:inherit; }
+footer { display:flex; gap:6px; padding:6px 10px; border-top:1px solid var(--line); }
+footer input { flex:1; }
+[hidden] { display:none !important; }
